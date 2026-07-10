@@ -22,10 +22,31 @@ let qIndex = 0;
 }
 
 const quizQuestions = [
+
+    {
+    "id": 1,
+    "title": "Question 1: Find the Intercept",
+    "prompt": "Move the graph until Intercept = 22.",
+    "validationState": { "intercept": 22 },
+    "render": renderQuiz,
+    "evaluate": evaluateGraph,
+    "startAnimation":  () => animateIntercept(22, 1000)
+  },
+
+
+    {
+    "id": 2,
+    "title": "Question 2: Find the Intercept",
+    "prompt": "Move the graph until Intercept = 14.",
+    "validationState": { "intercept": 14 },
+    "render": renderQuiz,
+    "evaluate": evaluateGraph,
+    "startAnimation":  () => animateIntercept(14, 1000)
+  },
   
   {
-    "id": 1,
-    "title": "Question 1: Find the Quantity",
+    "id": 3,
+    "title": "Question 3: Find the Quantity",
     "prompt": "Set Price = $14. What is the quantity demanded?",
     "options": generateQuantityOptions,
     "correctAnswer": getQuantityString,
@@ -35,8 +56,8 @@ const quizQuestions = [
     "startAnimation": () => animatePriceChange(14, 2000)
   },
 {
-  id: 2,
-  title: "Question 2: Find the Quantity",
+  id: 4,
+  title: "Question 4: Find the Quantity",
   prompt: "Set Price = $8 and Intercept = 24. What is the Quantity Demanded?",
   options: ["4", "6", "8", "10"],
   correctAnswer: "8",
@@ -46,12 +67,12 @@ const quizQuestions = [
   },
   render: renderQuiz,
   evaluate: evaluateDoubleGraphandOptions,
-  startAnimation: () => animateHint(8, 24, 2000)
+  startAnimation: () => animatePriceandIntercept(8, 24, 2000)
 },
 
 {
-  id: 2,
-  title: "Question 3: Find the Quantity",
+  id: 5,
+  title: "Question 5: Find the Quantity",
   prompt: "Set Price = $6 and Intercept = 16. What is the Quantity Demanded?",
   options: ["12", "6", "5", "2"],
   correctAnswer: "5",
@@ -61,7 +82,7 @@ const quizQuestions = [
   },
   render: renderQuiz,
   evaluate: evaluateDoubleGraphandOptions,
-  startAnimation: () => animateHint(6, 16, 2000)
+  startAnimation: () => animatePriceandIntercept(6, 16, 2000)
 }
   
 ];
