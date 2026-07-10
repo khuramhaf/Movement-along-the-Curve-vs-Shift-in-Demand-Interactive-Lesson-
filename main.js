@@ -77,6 +77,8 @@ function bindStepper(btn, dir, type) {
   function step() {
     if (type === "price") handlePriceChange(state.P + dir * P_STEP);
     else handleInterceptChange(state.intercept + dir * Q_STEP);
+
+    console.log(state.P)
   }
 
   function clearAll() {

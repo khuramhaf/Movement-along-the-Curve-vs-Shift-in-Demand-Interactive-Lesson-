@@ -61,7 +61,7 @@ function setFromP(rawP) {
     function handleInterceptChange(newValue) {
             let val = parseFloat(newValue);
             if (isNaN(val)) return;
-            state.intercept = Math.max(0, Math.min(26, val));
+            state.intercept = Number(Math.max(0, Math.min(26, val)).toFixed(1));
             if (state.P > state.intercept) state.P = state.intercept;
             renderAll();
         }
@@ -69,7 +69,7 @@ function setFromP(rawP) {
         function handlePriceChange(newValue) {
             let val = parseFloat(newValue);
             if (isNaN(val)) return;
-            state.P = Math.max(0, Math.min(state.intercept, val));
+            state.P = Number(Math.max(0, Math.min(state.intercept, val)).toFixed(1));
             renderAll();
         }
 
