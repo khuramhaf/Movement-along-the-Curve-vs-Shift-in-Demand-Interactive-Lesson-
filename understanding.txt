@@ -1,0 +1,4 @@
+inputs sirf state ko mtate karien gi d3.js mein or baqi sara kam render function mein ho ga sab kuch update wahan ho ga.
+
+
+ab chez clear ho gai k simply sari inputs state ko update karien gi or renderAll function us state ko use kar k sab kuch update kary ga. 

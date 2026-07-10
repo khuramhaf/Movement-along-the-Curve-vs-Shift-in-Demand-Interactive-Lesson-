@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Inverse Demand Graph</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            color: #333;
+        }
+        h2 {
+            color: #2c3e50;
+        }
+        .controls-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        input[type="number"] {
+            width: 70px;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="range"] {
+            flex-grow: 1;
+            cursor: pointer;
+        }
+        .equation-display {
+            grid-column: span 2;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #0066cc;
+            background: #e6f2ff;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .axis-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .demand-line-hitbox {
+            stroke: transparent;
+            stroke-width: 15px;
+            cursor: ns-resize;
+            fill: none;
+        }
+        .demand-line {
+            stroke: #0066cc;
+            stroke-width: 3px;
+            fill: none;
+            pointer-events: none;
+        }
+        .point-dot {
+            fill: #e02424;
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+        .point-dot:hover {
+            fill: #ff4d4d;
+            r: 8px;
+        }
+        .drop-line {
+            stroke: #999;
+            stroke-dasharray: 4,4;
+            stroke-width: 1.5px;
+        }
+        .graph-container {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Interactive Inverse Demand Curve</h2>
+    <p>Drag the <strong>blue line</strong> vertically to change the Intercept. Drag the <strong>red dot</strong> along the line to shift Price and Quantity. You can also use the controls below.</p>
+
+    <div class="controls-container">
+        <!-- Intercept Controls -->
+        <div class="control-group">
+            <label for="intercept-slider">Intercept (A)</label>
+            <div class="input-row">
+                <input type="number" id="intercept-num" min="14" max="26" step="0.1" value="20">
+                <input type="range" id="intercept-slider" min="14" max="26" step="0.1" value="20">
+            </div>
+        </div>
+
+        <!-- Price Controls -->
+        <div class="control-group">
+            <label for="price-slider">Price (P)</label>
+            <div class="input-row">
+                <input type="number" id="price-num" min="0" max="26" step="0.1" value="10">
+                <input type="range" id="price-slider" min="0" max="26" step="0.1" value="10">
+            </div>
+        </div>
+
+        <div class="equation-display" id="equation-text">
+            P = 20.0 - 2Q &nbsp;&nbsp;|&nbsp;&nbsp; Current: (Q = 5.0, P = 10.0)
+        </div>
+    </div>
+
+    <div class="graph-container">
+        <svg id="demand-graph" width="600" height="450"></svg>
+    </div>
+
+    <script>
+        // --- State Variables ---
+        let state = {
+            intercept: 20.0,
+            price: 10.0,
+            slope: 2.0 // Fixed slope magnitude from P = Intercept - 2Q
+        };
+
+        // Derived property
+        function getQuantity() {
+            return Math.max(0, (state.intercept - state.price) / state.slope);
+        }
+
+        // --- Dimensions & Scales ---
+        const svg = d3.select("#demand-graph");
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+        const margin = { top: 40, right: 40, bottom: 50, left: 60 };
+
+        const graphWidth = width - margin.left - margin.right;
+        const graphHeight = height - margin.top - margin.bottom;
+
+        // X scale (Quantity) -> Max intercept is 26, so max Q = 26/2 = 13. Cap scale at 15.
+        const xScale = d3.scaleLinear()
+            .domain([0, 15])
+            .range([0, graphWidth]);
+
+        // Y scale (Price) -> Max intercept is 26. Cap scale at 30.
+        const yScale = d3.scaleLinear()
+            .domain([0, 30])
+            .range([graphHeight, 0]);
+
+        // Create main graph container group
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+        // --- Render Axes ---
+        const xAxis = d3.axisBottom(xScale).ticks(15);
+        const yAxis = d3.axisLeft(yScale).ticks(10);
+
+        g.append("g")
+            .attr("transform", `translate(0, ${graphHeight})`)
+            .call(xAxis);
+
+        g.append("g")
+            .call(yAxis);
+
+        // Axis Labels
+        g.append("text")
+            .attr("class", "axis-label")
+            .attr("x", graphWidth / 2)
+            .attr("y", graphHeight + 40)
+            .attr("text-anchor", "middle")
+            .text("Quantity (Q)");
+
+        g.append("text")
+            .attr("class", "axis-label")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -graphHeight / 2)
+            .attr("y", -40)
+            .attr("text-anchor", "middle")
+            .text("Price ($)");
+
+        // --- Create Visual Elements ---
+        // Drop lines
+        const xDropLine = g.append("line").attr("class", "drop-line");
+        const yDropLine = g.append("line").attr("class", "drop-line");
+
+        // Demand line group (holds visible line and invisible thick line for easy dragging)
+        const demandGroup = g.append("g");
+        
+        const demandLineHitbox = demandGroup.append("line")
+            .attr("class", "demand-line-hitbox");
+
+        const demandLineVisible = demandGroup.append("line")
+            .attr("class", "demand-line");
+
+        // Equilibrium dot
+        const dot = g.append("circle")
+            .attr("class", "point-dot")
+            .attr("r", 6);
+
+        // --- Interactivity (Drag Behaviors) ---
+
+        // Drag behavior for the entire demand line (changes intercept)
+        const dragLine = d3.drag()
+            .on("drag", function(event) {
+                // Convert change in Y pixels to change in Price units
+                const dyPrice = yScale.invert(event.y) - yScale.invert(event.y - event.dy);
+                
+                let newIntercept = state.intercept + dyPrice;
+                // Bound check
+                newIntercept = Math.max(14, Math.min(26, newIntercept));
+                
+                // Adjust price keeping distance relative or capped
+                state.intercept = newIntercept;
+                if (state.price > state.intercept) {
+                    state.price = state.intercept;
+                }
+
+                updateDOMAndGraph();
+            });
+
+        demandLineHitbox.call(dragLine);
+
+        // Drag behavior for the dot (slides along the existing demand line)
+        const dragDot = d3.drag()
+            .on("drag", function(event) {
+                // Determine drag position based on closest coordinate
+                let newPrice = yScale.invert(event.y);
+                
+                // Price bounds: can't go below 0 or above the current intercept
+                newPrice = Math.max(0, Math.min(state.intercept, newPrice));
+                
+                state.price = newPrice;
+                updateDOMAndGraph();
+            });
+
+        dot.call(dragDot);
+
+        // --- UI Event Listeners (Inputs / Sliders) ---
+        const inputInterceptNum = d3.select("#intercept-num");
+        const inputInterceptSlider = d3.select("#intercept-slider");
+        const inputPriceNum = d3.select("#price-num");
+        const inputPriceSlider = d3.select("#price-slider");
+
+        function handleInterceptChange(newValue) {
+            let val = parseFloat(newValue);
+            if (isNaN(val)) return;
+            state.intercept = Math.max(14, Math.min(26, val));
+            if (state.price > state.intercept) state.price = state.intercept;
+            updateDOMAndGraph();
+        }
+
+        function handlePriceChange(newValue) {
+            let val = parseFloat(newValue);
+            if (isNaN(val)) return;
+            state.price = Math.max(0, Math.min(state.intercept, val));
+            updateDOMAndGraph();
+        }
+
+        inputInterceptNum.on("input", function() { handleInterceptChange(this.value); });
+        inputInterceptSlider.on("input", function() { handleInterceptChange(this.value); });
+        inputPriceNum.on("input", function() { handlePriceChange(this.value); });
+        inputPriceSlider.on("input", function() { handlePriceChange(this.value); });
+
+
+        // --- Core Update Function ---
+        function updateDOMAndGraph() {
+            const currentQ = getQuantity();
+
+            // 1. Dynamic ceiling update for price controls based on active intercept
+            inputPriceNum.attr("max", state.intercept);
+            inputPriceSlider.attr("max", state.intercept);
+
+            // 2. Synchronize Input/Slider DOM Element values
+            inputInterceptNum.property("value", state.intercept.toFixed(1));
+            inputInterceptSlider.property("value", state.intercept.toFixed(1));
+            inputPriceNum.property("value", state.price.toFixed(1));
+            inputPriceSlider.property("value", state.price.toFixed(1));
+
+            // 3. Update top readouts text
+            d3.select("#equation-text").html(
+                `P = ${state.intercept.toFixed(1)} - 2Q &nbsp;&nbsp;|&nbsp;&nbsp; Current: (Q = ${currentQ.toFixed(1)}, P = ${state.price.toFixed(1)})`
+            );
+
+            // 4. Recalculate line endpoints mapping to current intercept
+            // Endpoint 1: Q = 0 -> P = Intercept
+            const x1 = xScale(0);
+            const y1 = yScale(state.intercept);
+
+            // Endpoint 2: P = 0 -> Q = Intercept / 2
+            const x2 = xScale(state.intercept / state.slope);
+            const y2 = yScale(0);
+
+            // 5. Update Line Elements attributes
+            demandLineVisible
+                .attr("x1", x1).attr("y1", y1)
+                .attr("x2", x2).attr("y2", y2);
+
+            demandLineHitbox
+                .attr("x1", x1).attr("y1", y1)
+                .attr("x2", x2).attr("y2", y2);
+
+            // 6. Update Dot location attributes
+            const dotX = xScale(currentQ);
+            const dotY = yScale(state.price);
+
+            dot.attr("cx", dotX).attr("cy", dotY);
+
+            // 7. Draw the Dashed reference lines
+            xDropLine
+                .attr("x1", dotX).attr("y1", dotY)
+                .attr("x2", xScale(0)).attr("y2", dotY);
+
+            yDropLine
+                .attr("x1", dotX).attr("y1", dotY)
+                .attr("x2", dotX).attr("y2", yScale(0));
+        }
+
+        // Run Initial Render State
+        updateDOMAndGraph();
+
+    </script>
+</body>
+</html>
