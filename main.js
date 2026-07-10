@@ -177,18 +177,18 @@ function doRender({ intercept, P }) {
     // Only touch max/value if they actually changed
     const newMax = intercept;
     if (inputPriceNum.property("max") !== newMax) {
-        inputPriceNum.attr("max", intercept);
-        inputPriceSlider.attr("max", intercept);
+        inputPriceNum.attr("max", Number(intercept.toFixed(1)));
+        inputPriceSlider.attr("max", Number(intercept.toFixed(1)));
     }
-    inputInterceptNum.property("value", intercept);
-    inputInterceptSlider.property("value", intercept);
-    inputPriceNum.property("value", P);
-    inputPriceSlider.property("value", P);
+    inputInterceptNum.property("value", Number(intercept.toFixed(1)));
+    inputInterceptSlider.property("value", Number(intercept.toFixed(1)));
+    inputPriceNum.property("value", Number(P.toFixed(1)));
+    inputPriceSlider.property("value", Number(P.toFixed(1)));
     
-     inputPriceNumM.property("value", P);
+     inputPriceNumM.property("value", Number(P.toFixed(1)));
         
         
-      inputInterceptNumM.property("value", intercept);
+      inputInterceptNumM.property("value", Number(intercept.toFixed(1)));
 
       
 
